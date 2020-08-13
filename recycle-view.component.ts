@@ -2,25 +2,9 @@ import { html, css, LitElement } from 'lit-element';
 
 /* DEMO HELPER FUNCTIONS:
   ----------------------------------------------------------------------- */
-const getRandomCatImg = () => {
-  const randomNum = () => {
-    return Math.floor(Math.random() * 100000);
-  };
-  const url = 'https://source.unsplash.com/collection/139386/200x200/?sig=';
-  return url + randomNum();
+const generateCardImage = ({ id, quality }) => {
+  return `https://card.godsunchained.com/?id=${id}&q=${quality}&w=256`;
 };
-
-const initCollection = numberOfItems => {
-	const collection = [];
-  for (let i = 0; i < numberOfItems; i++) {
-  	collection.push({
-    	catCounter: i,
-      title: `Cat image: ${i}`,
-      imgSrc: getRandomCatImg()
-    })
-  }
-  return collection;
-}
 
 const getOuterHeight = (el) => {
   const computedStyles = window.getComputedStyle(el);
@@ -73,37 +57,53 @@ export class RecycleView extends LitElement {
   }
 
   static get properties() {
-    return {};
+    return {
+      collection: { type: Array },
+      layoutMode: { type: String },
+    };
   }
 
-  private topSentinelPreviousY = 0;
-  private bottomSentinelPreviousY = 0;
-  private listSize = 0;
-  private collectionSize = 100;
+  private virtualListSize = 0;
   private collection = [];
-  private currentFirstIndex = 0;
   private observer: any;
+
+  private currentFirstIndex = 0;
   private paddingTop = 0;
   private paddingBottom = 0;
+  private topSentinelPreviousY = 0;
+  private bottomSentinelPreviousY = 0;
+
+  private state = {
+    paddingTop: 0,
+    paddingBottom: 0,
+    topSentinelPreviousY: 0,
+    bottomSentinelPreviousY: 0,
+    currentFirstIndex: 0,
+    virtualListSize: 0,
+  };
+
+  private get collectionSize() {
+    return this.collection.length;
+  }
 
   /* LIT ELEMENT COMPONENT LIFE CYCLE EVENTS:
   ----------------------------------------------------------------------- */
-  constructor(props) {
-    super();
-    this.collectionSize = 80;
-    this.listSize = 10;
-    this.collection = initCollection(this.collectionSize);
-  }
 
   firstUpdated() {
     this.initIntersectionObserver();
   } 
 
+  updated(changes: any) {
+    super.updated(changes);
+    if (changes.has('collection')) {
+      
+    }
+  }
 
   /* PRIVATE METHODS:
   ----------------------------------------------------------------------- */
   private recycleDom(firstIndex) {
-    for (let i = 0; i < this.listSize; i++) {
+    for (let i = 0; i < this.virtualListSize; i++) {
       const tile = this.shadowRoot.querySelector('.list__tile--' + i) as HTMLElement;
       const img = tile.querySelector('.list__tile__img');
       const title = tile.querySelector('.list__tile__title');
@@ -116,7 +116,7 @@ export class RecycleView extends LitElement {
   private updatePadding(scrollingDownwards = true) {
     const container = this.shadowRoot.querySelector('.list') as HTMLElement;
     const firstItem = container.querySelector('.list__tile');
-    const removePaddingValue = getOuterHeight(firstItem) * (this.listSize / 2);
+    const removePaddingValue = getOuterHeight(firstItem) * (this.virtualListSize / 2);
 
     if (scrollingDownwards) {
       this.paddingTop += removePaddingValue;
@@ -130,7 +130,7 @@ export class RecycleView extends LitElement {
   }
 
   private getCurrentWindowFirstIndex(scrollingDownwards = true) {
-    const increment = this.listSize / 2;
+    const increment = this.virtualListSize / 2;
     let firstIndex;
     
     if (scrollingDownwards) {
@@ -174,7 +174,7 @@ export class RecycleView extends LitElement {
   private bottomSentryCallback(entry) {
 
     // Stop users from going off the page (in terms of the results set total)
-    if (this.currentFirstIndex === this.collectionSize - this.listSize) {
+    if (this.currentFirstIndex === this.collectionSize - this.virtualListSize) {
       return false;
     }
 
@@ -201,7 +201,7 @@ export class RecycleView extends LitElement {
         const { target } = entry;
         if (target.classList.contains('list__tile--0')) {
           this.topSentryCallback(entry);
-        } else if (target.classList.contains(`list__tile--${this.listSize - 1}`)) {
+        } else if (target.classList.contains(`list__tile--${this.virtualListSize - 1}`)) {
           this.bottomSentryCallback(entry);
         }
       });
@@ -211,17 +211,16 @@ export class RecycleView extends LitElement {
       root: this,
     });
     this.observer.observe(this.shadowRoot.querySelector(".list__tile--0"));
-    this.observer.observe(this.shadowRoot.querySelector(`.list__tile--${this.listSize - 1}`));
+    this.observer.observe(this.shadowRoot.querySelector(`.list__tile--${this.virtualListSize - 1}`));
   }
 
   render() {
     const { collection } = this;
-    const moo = new Array(this.listSize).fill({});
-    console.log('!!!!! RENDERING !!!!!');
+    const list = new Array(this.virtualListSize).fill({});
 
     return html`
       <div class='list'>
-        ${moo.map((_, i) => {
+        ${list.map((_, i) => {
           const tile = collection[i];
           return html`
             <div class="list__tile list__tile--${i}">
