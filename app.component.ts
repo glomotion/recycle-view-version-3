@@ -1,18 +1,4 @@
 import { html, css, LitElement } from 'lit-element';
-import Stats from 'stats.js';
-
-function numDomNodes(node) {
-  if (!node.children || node.children.length == 0) {
-    return 0;
-  }
-
-  const childrenCount = Array.from(node.children).map(numDomNodes);
-  const newCount = node.children.length 
-    + 
-    childrenCount.reduce((p, c) => p + c, 0);
-  console.log('!!!!!!', node);
-  return newCount;
-}
 
 export class App extends LitElement {
   static get styles() {
